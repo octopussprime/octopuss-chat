@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Play, Pause, RotateCcw, Volume2, Download, MoreVertical, Trash2, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Play, Pause, RotateCcw, Volume2, Download, MoreVertical, Trash2, Loader2, RefreshCw, AlertTriangle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface AudioPlayerProps {
@@ -15,17 +15,24 @@ interface AudioPlayerProps {
   onDeleted?: () => void;
   onRetry?: () => void;
   onUrlRefresh?: (notebookId: string) => void;
+  // New props for Telegram functionality
+  sessionId?: string;
+  message?: string;
 }
 
-const AudioPlayer = ({ 
-  audioUrl, 
-  title = "Deep Dive Conversation", 
+import { useAuth } from '@/contexts/AuthContext';
+
+const AudioPlayer = ({
+  audioUrl,
+  title = "Deep Dive Conversation",
   notebookId,
   expiresAt,
   onError,
   onDeleted,
   onRetry,
-  onUrlRefresh
+  onUrlRefresh,
+  sessionId,
+  message = "Check out this audio overview from my notebook!"
 }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -34,11 +41,13 @@ const AudioPlayer = ({
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSendingToTelegram, setIsSendingToTelegram] = useState(false);
   const [audioError, setAudioError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [autoRetryInProgress, setAutoRetryInProgress] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Check if audio is expired
   const isExpired = expiresAt ? new Date(expiresAt) <= new Date() : false;
@@ -307,6 +316,53 @@ const AudioPlayer = ({
     }
   };
 
+  const sendToTelegram = async () => {
+    if (!notebookId || !user?.id) {
+      toast({
+        title: "Error",
+        description: "Cannot send to Telegram - missing required information",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSendingToTelegram(true);
+
+    try {
+      const { supabase } = await import('@/integrations/supabase/client');
+
+      // Call the Supabase edge function
+      const { error } = await supabase.functions.invoke('send-audio-message', {
+        body: {
+          session_id: sessionId || notebookId,
+          notebook_id: notebookId,
+          audio_signed_url: audioUrl,
+          message: message,
+          user_id: user.id,
+          timestamp: new Date().toISOString()
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Sent to Telegram",
+        description: "Your audio overview has been sent to Telegram successfully!",
+      });
+    } catch (error) {
+      console.error('Send to Telegram failed:', error);
+      toast({
+        title: "Send Failed",
+        description: "Failed to send audio to Telegram. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingToTelegram(false);
+    }
+  };
+
   return (
     <Card className="p-4 space-y-4">
       <audio ref={audioRef} src={audioUrl} preload="metadata" />
@@ -416,6 +472,20 @@ const AudioPlayer = ({
               <Pause className="h-4 w-4" />
             ) : (
               <Play className="h-4 w-4" />
+            )}
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={sendToTelegram}
+            disabled={loading || !!audioError || isSendingToTelegram}
+            title="Send to Telegram"
+          >
+            {isSendingToTelegram ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
             )}
           </Button>
         </div>

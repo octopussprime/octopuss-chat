@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 9080,
+    allowedHosts: ["corresponder.octopussprime.uk"], // 👈 added this line
   },
   plugins: [
     react(),

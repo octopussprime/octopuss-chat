@@ -225,15 +225,17 @@ const StudioSidebar = ({
             <h3 className="font-medium text-gray-900">Audio Overview</h3>
           </div>
 
-          {hasValidAudio && !audioError && currentStatus !== 'generating' && !isAutoRefreshing ? <AudioPlayer 
-              audioUrl={notebook.audio_overview_url} 
-              title="Deep Dive Conversation" 
-              notebookId={notebookId} 
-              expiresAt={notebook.audio_url_expires_at} 
-              onError={handleAudioError} 
-              onRetry={handleAudioRetry} 
+          {hasValidAudio && !audioError && currentStatus !== 'generating' && !isAutoRefreshing ? <AudioPlayer
+              audioUrl={notebook.audio_overview_url}
+              title="Deep Dive Conversation"
+              notebookId={notebookId}
+              expiresAt={notebook.audio_url_expires_at}
+              onError={handleAudioError}
+              onRetry={handleAudioRetry}
               onDeleted={handleAudioDeleted}
               onUrlRefresh={handleUrlRefresh}
+              sessionId={notebookId}
+              message={`Check out this audio overview from my "${notebook?.title || 'Untitled'}" notebook!`}
             /> : <Card className="p-3 border border-gray-200">
               {/* Hide this div when generating or auto-refreshing */}
               {currentStatus !== 'generating' && !isGenerating && !isAutoRefreshing && <div className="flex items-center space-x-3 mb-3">
