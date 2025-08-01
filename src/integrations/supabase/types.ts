@@ -53,6 +53,9 @@ export type Database = {
           audio_overview_generation_status: string | null
           audio_overview_url: string | null
           audio_url_expires_at: string | null
+          notebook_summary_generation_status: string | null
+          notebook_summary_url: string | null
+          notebook_summary_url_expires_at: string | null
           color: string | null
           created_at: string
           description: string | null
@@ -68,6 +71,9 @@ export type Database = {
           audio_overview_generation_status?: string | null
           audio_overview_url?: string | null
           audio_url_expires_at?: string | null
+          notebook_summary_generation_status: string | null
+          notebook_summary_url: string | null
+          notebook_summary_url_expires_at: string | null
           color?: string | null
           created_at?: string
           description?: string | null
@@ -83,6 +89,9 @@ export type Database = {
           audio_overview_generation_status?: string | null
           audio_overview_url?: string | null
           audio_url_expires_at?: string | null
+          notebook_summary_generation_status: string | null
+          notebook_summary_url: string | null
+          notebook_summary_url_expires_at: string | null
           color?: string | null
           created_at?: string
           description?: string | null
