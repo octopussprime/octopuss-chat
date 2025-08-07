@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -95,6 +94,30 @@ export const useSources = (notebookId?: string) => {
     };
   }, [notebookId, user, queryClient]);
 
+  // Helper function to check if notebook generation should be triggered
+  const shouldTriggerGeneration = async (source: any, isFirstSource: boolean) => {
+    if (!isFirstSource || !notebookId) return false;
+
+    // Check notebook generation status
+    const { data: notebook } = await supabase
+      .from('notebooks')
+      .select('generation_status')
+      .eq('id', notebookId)
+      .single();
+    
+    if (notebook?.generation_status !== 'pending') return false;
+
+    // Check if source has required data for generation
+    const canGenerate = 
+      (source.type === 'pdf' && source.file_path) ||
+      (source.type === 'text' && source.content) ||
+      (source.type === 'website' && source.url) ||
+      (source.type === 'youtube' && source.url) ||
+      (source.type === 'audio' && source.file_path);
+
+    return canGenerate;
+  };
+
   const addSource = useMutation({
     mutationFn: async (sourceData: {
       notebookId: string;
@@ -132,44 +155,21 @@ export const useSources = (notebookId?: string) => {
       console.log('Source added successfully:', newSource);
       
       // The Realtime subscription will handle updating the cache
-      // But we still check for first source to trigger generation
+      // Check if this is the first source and trigger generation if needed
       const currentSources = queryClient.getQueryData(['sources', notebookId]) as any[] || [];
       const isFirstSource = currentSources.length === 0;
       
-      if (isFirstSource && notebookId) {
-        console.log('This is the first source, checking notebook generation status...');
+      if (await shouldTriggerGeneration(newSource, isFirstSource)) {
+        console.log('Triggering notebook content generation for first source...');
         
-        // Check notebook generation status
-        const { data: notebook } = await supabase
-          .from('notebooks')
-          .select('generation_status')
-          .eq('id', notebookId)
-          .single();
-        
-        if (notebook?.generation_status === 'pending') {
-          console.log('Triggering notebook content generation...');
-          
-          // Determine if we can trigger generation based on source type and available data
-          const canGenerate = 
-            (newSource.type === 'pdf' && newSource.file_path) ||
-            (newSource.type === 'text' && newSource.content) ||
-            (newSource.type === 'website' && newSource.url) ||
-            (newSource.type === 'youtube' && newSource.url) ||
-            (newSource.type === 'audio' && newSource.file_path);
-          
-          if (canGenerate) {
-            try {
-              await generateNotebookContentAsync({
-                notebookId,
-                filePath: newSource.file_path || newSource.url,
-                sourceType: newSource.type
-              });
-            } catch (error) {
-              console.error('Failed to generate notebook content:', error);
-            }
-          } else {
-            console.log('Source not ready for generation yet - missing required data');
-          }
+        try {
+          await generateNotebookContentAsync({
+            notebookId: notebookId!,
+            filePath: newSource.file_path || newSource.url,
+            sourceType: newSource.type
+          });
+        } catch (error) {
+          console.error('Failed to generate notebook content:', error);
         }
       }
     },
@@ -197,30 +197,22 @@ export const useSources = (notebookId?: string) => {
     onSuccess: async (updatedSource) => {
       // The Realtime subscription will handle updating the cache
       
-      // If file_path was added and this is the first source, trigger generation
+      // Only trigger generation if file_path was added and this is the first source
       if (updatedSource.file_path && notebookId) {
         const currentSources = queryClient.getQueryData(['sources', notebookId]) as any[] || [];
         const isFirstSource = currentSources.length === 1;
         
-        if (isFirstSource) {
-          const { data: notebook } = await supabase
-            .from('notebooks')
-            .select('generation_status')
-            .eq('id', notebookId)
-            .single();
+        if (await shouldTriggerGeneration(updatedSource, isFirstSource)) {
+          console.log('File path updated, triggering notebook content generation...');
           
-          if (notebook?.generation_status === 'pending') {
-            console.log('File path updated, triggering notebook content generation...');
-            
-            try {
-              await generateNotebookContentAsync({
-                notebookId,
-                filePath: updatedSource.file_path,
-                sourceType: updatedSource.type
-              });
-            } catch (error) {
-              console.error('Failed to generate notebook content:', error);
-            }
+          try {
+            await generateNotebookContentAsync({
+              notebookId,
+              filePath: updatedSource.file_path,
+              sourceType: updatedSource.type
+            });
+          } catch (error) {
+            console.error('Failed to generate notebook content:', error);
           }
         }
       }

@@ -7,7 +7,7 @@ import CopiedTextDialog from './CopiedTextDialog';
 import { useSources } from '@/hooks/useSources';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { useDocumentProcessing } from '@/hooks/useDocumentProcessing';
-import { useNotebookGeneration } from '@/hooks/useNotebookGeneration';
+
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -42,11 +42,6 @@ const AddSourcesDialog = ({
     processDocumentAsync,
     isProcessing
   } = useDocumentProcessing();
-
-  const {
-    generateNotebookContentAsync,
-    isGenerating
-  } = useNotebookGeneration();
 
   const {
     toast
@@ -123,12 +118,8 @@ const AddSourcesDialog = ({
           sourceType: fileType
         });
 
-        // Generate notebook content
-        await generateNotebookContentAsync({
-          notebookId,
-          filePath,
-          sourceType: fileType
-        });
+        // Note: Notebook content generation is now handled automatically by the useSources hook
+        // when the source is updated with the file_path, so we don't need to call it here
         console.log('Document processing completed for:', sourceId);
       } catch (processingError) {
         console.error('Document processing failed:', processingError);
