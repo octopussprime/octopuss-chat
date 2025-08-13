@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MoreVertical, Plus, Edit, Bot, User, Loader2, AlertCircle, CheckCircle2, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Bot, User, Loader2, AlertCircle, CheckCircle2, RefreshCw, FileDown, Download } from 'lucide-react';
 import { useNotes, Note } from '@/hooks/useNotes';
 import { useAudioOverview } from '@/hooks/useAudioOverview';
 import { useNotebooks } from '@/hooks/useNotebooks';
@@ -20,7 +20,6 @@ interface StudioSidebarProps {
 
 const StudioSidebar = ({
   notebookId,
-  isExpanded,
   onCitationClick
 }: StudioSidebarProps) => {
   const [editingNote, setEditingNote] = useState<Note | null>(null);
@@ -156,6 +155,74 @@ const StudioSidebar = ({
     refreshAudioUrl(notebookId);
   };
 
+  const handleExportNotes = () => {
+    if (!notes || notes.length === 0) {
+      console.log('No notes to export');
+      return;
+    }
+
+    const exportData = {
+      notebook: notebook?.title || 'Untitled Notebook',
+      exportDate: new Date().toISOString(),
+      notes: notes.map(note => ({
+        id: note.id,
+        title: note.title,
+        content: note.content,
+        sourceType: note.source_type,
+        createdAt: note.created_at,
+        updatedAt: note.updated_at,
+        extractedText: note.extracted_text
+      }))
+    };
+
+    const dataStr = JSON.stringify(exportData, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${notebook?.title || 'notebook'}-notes-export.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadNotes = () => {
+    if (!notes || notes.length === 0) {
+      console.log('No notes to download');
+      return;
+    }
+
+    let textContent = `Notes from: ${notebook?.title || 'Untitled Notebook'}\n`;
+    textContent += `Downloaded on: ${new Date().toLocaleDateString()}\n\n`;
+    textContent += '=' .repeat(50) + '\n\n';
+
+    notes.forEach((note, index) => {
+      textContent += `${index + 1}. ${note.title}\n`;
+      textContent += `Type: ${note.source_type === 'ai_response' ? 'AI Response' : 'User Note'}\n`;
+      textContent += `Created: ${new Date(note.created_at).toLocaleDateString()}\n`;
+      textContent += `Updated: ${new Date(note.updated_at).toLocaleDateString()}\n\n`;
+
+      if (note.source_type === 'ai_response' && note.extracted_text) {
+        textContent += note.extracted_text;
+      } else {
+        textContent += note.content;
+      }
+
+      textContent += '\n\n' + '-'.repeat(30) + '\n\n';
+    });
+
+    const dataBlob = new Blob([textContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${notebook?.title || 'notebook'}-notes.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const getStatusDisplay = () => {
     if (isAutoRefreshing) {
       return {
@@ -280,19 +347,49 @@ const StudioSidebar = ({
                 </Button>
               </div>
             </Card>}
+
+          {/* Note Actions - Always visible */}
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-sm font-medium text-gray-700">Note Actions</h4>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <Button variant="outline" size="sm" className="w-full justify-start" onClick={handleCreateNote}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Note
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={handleExportNotes}
+                  disabled={!notes || notes.length === 0}
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Export Notes
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={handleDownloadNotes}
+                  disabled={!notes || notes.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Notes
+                </Button>
+              </div>
+            </div>
+          </div>
         </Card>
 
         {/* Notes Section */}
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-medium text-gray-900">Notes</h3>
-            
+
           </div>
-          
-          <Button variant="outline" size="sm" className="w-full mb-4" onClick={handleCreateNote}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add note
-          </Button>
         </div>
       </div>
 
