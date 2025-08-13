@@ -24,7 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const AudioPlayer = ({
   audioUrl,
-  title = "Deep Dive Conversation",
+  title = "Audio summary",
   notebookId,
   expiresAt,
   onError,

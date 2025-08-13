@@ -36,7 +36,7 @@ export const useAudioOverview = (notebookId?: string) => {
               setIsGenerating(false);
               toast({
                 title: "Audio Overview Ready!",
-                description: "Your deep dive conversation is ready to play!",
+                description: "Your Audio summary is ready to play!",
               });
               
               // Invalidate queries to refresh the UI

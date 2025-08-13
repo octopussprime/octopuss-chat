@@ -227,7 +227,7 @@ const StudioSidebar = ({
 
           {hasValidAudio && !audioError && currentStatus !== 'generating' && !isAutoRefreshing ? <AudioPlayer
               audioUrl={notebook.audio_overview_url}
-              title="Deep Dive Conversation"
+              title="Audio summary"
               notebookId={notebookId}
               expiresAt={notebook.audio_url_expires_at}
               onError={handleAudioError}
@@ -245,7 +245,7 @@ const StudioSidebar = ({
                     </svg>
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-medium text-gray-900">Deep Dive conversation</h4>
+                    <h4 className="font-medium text-gray-900">Audio summary</h4>
                     <p className="text-sm text-gray-600">Two hosts</p>
                   </div>
                 </div>}
